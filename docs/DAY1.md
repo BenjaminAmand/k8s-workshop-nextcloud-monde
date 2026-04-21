@@ -234,9 +234,9 @@ curl http://<TRAEFIK-EXTERNAL-IP>
 
 ### Checkpoint 3 — Traefik
 
-- [ ] Traefik pod(s) `Running`
-- [ ] Traefik Service has an `EXTERNAL-IP`
-- [ ] `curl http://<IP>` returns a 404 from Traefik (not `connection refused`)
+- [X] Traefik pod(s) `Running`
+- [X] Traefik Service has an `EXTERNAL-IP`
+- [X] `curl http://<IP>` returns a 404 from Traefik (not `connection refused`)
 
 ---
 

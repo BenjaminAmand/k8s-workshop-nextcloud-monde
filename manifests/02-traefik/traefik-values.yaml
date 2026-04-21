@@ -1,0 +1,29 @@
+deployment:
+  # Run as a DaemonSet so Traefik runs on every matching node
+  # and can bind host ports directly.
+  kind: DaemonSet
+
+# Pin Traefik to the node labeled ingress-ready=true (the control-plane).
+# kind's extraPortMappings bind host ports 80/443 to that node's container.
+nodeSelector:
+  ingress-ready: "true"
+
+# The control-plane node has a NoSchedule taint by default in kind.
+# Without this toleration, the DaemonSet pod is never scheduled there —
+# even if the nodeSelector matches.
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+service:
+  # MetalLB assigns an external IP to this Service.
+  type: LoadBalancer
+
+ports:
+  web:
+    # Bind port 80 on the host — required for WSL2 → Windows browser access.
+    # kind maps this host port to the control-plane container via extraPortMappings.
+    hostPort: 443
+  websecure:
+    hostPort: 80
