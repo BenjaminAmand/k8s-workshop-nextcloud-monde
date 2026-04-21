@@ -10,8 +10,8 @@ storage class — ready to receive the application stack on Day 2.
 
 By the end of Day 1 you will have:
 
-- [ ] A 3-node kind cluster (1 control-plane + 2 workers), all nodes `Ready`
-- [ ] Namespaces: `nextcloud`, `monitoring`, `traefik`, `metallb-system`
+- [X] A 3-node kind cluster (1 control-plane + 2 workers), all nodes `Ready`
+- [X] Namespaces: `nextcloud`, `monitoring`, `traefik`, `metallb-system`
 - [ ] MetalLB installed and configured with an IP address pool
 - [ ] Traefik running as a DaemonSet with a MetalLB-assigned external IP
 - [ ] A default StorageClass available for persistent volumes
@@ -107,7 +107,7 @@ All four should show status `Active`.
 
 ### Checkpoint 1 — namespaces
 
-- [ ] All 4 namespaces exist and are `Active`
+- [X] All 4 namespaces exist and are `Active`
 
 ---
 

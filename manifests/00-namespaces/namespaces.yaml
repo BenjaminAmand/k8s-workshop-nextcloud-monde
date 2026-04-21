@@ -14,17 +14,31 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: # TODO: first namespace name
+  name: nextcloud
   labels:
-    name: # TODO: same as the namespace name
+    name: nextcloud
 
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: # TODO: second namespace name
+  name: monitoring
   labels:
-    name: # TODO
+    name: monitoring
 
 ---
-# TODO: add the remaining two Namespace resources in the same format, separated by ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+  labels:
+    name: traefik
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb-system
+  labels:
+    name: metallb-system
+
