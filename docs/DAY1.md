@@ -12,10 +12,10 @@ By the end of Day 1 you will have:
 
 - [X] A 3-node kind cluster (1 control-plane + 2 workers), all nodes `Ready`
 - [X] Namespaces: `nextcloud`, `monitoring`, `traefik`, `metallb-system`
-- [ ] MetalLB installed and configured with an IP address pool
-- [ ] Traefik running as a DaemonSet with a MetalLB-assigned external IP
-- [ ] A default StorageClass available for persistent volumes
-- [ ] A test nginx deployment reachable via Ingress from your browser
+- [X] MetalLB installed and configured with an IP address pool
+- [X] Traefik running as a DaemonSet with a MetalLB-assigned external IP
+- [X] A default StorageClass available for persistent volumes
+- [X] A test nginx deployment reachable via Ingress from your browser
 
 ---
 
@@ -253,10 +253,10 @@ kubectl get configmap -n local-path-storage local-path-config -o yaml
 
 **Questions to answer now** (they will come up during restitution):
 
-1. Where on the node host does local-path store data? Check the ConfigMap.
-2. What happens to PVC data if the pod is rescheduled to a different node?
-3. Is this StorageClass appropriate for a production PostgreSQL primary?
-4. What annotation marks a StorageClass as the cluster default?
+1. Where on the node host does local-path store data? Check the ConfigMap. > /var/local-path-provisioner
+2. What happens to PVC data if the pod is rescheduled to a different node? > Le pod échouera car il n'as pas acces au stockage sur un autre node.
+3. Is this StorageClass appropriate for a production PostgreSQL primary? > Non, il manque la replication et la haute disponibilité. Pour de la production, il est preferable d'utiliser un stockage réseau.
+4. What annotation marks a StorageClass as the cluster default? > storageclass.kubernetes.io/is-default-class: "true"
 
 ---
 
@@ -306,11 +306,11 @@ bash scripts/validate-day1.sh
 All checks must pass before starting Day 2. Run it as many times as needed.
 
 **Manual checklist**:
-- [ ] 3 nodes `Ready`
-- [ ] 4 namespaces exist, all `Active`
-- [ ] MetalLB pods `Running`, `IPAddressPool` and `L2Advertisement` present
-- [ ] Traefik pod `Running`, Service has `EXTERNAL-IP`
-- [ ] `curl http://test.local` → HTTP 200
+- [X] 3 nodes `Ready`
+- [X] 4 namespaces exist, all `Active`
+- [X] MetalLB pods `Running`, `IPAddressPool` and `L2Advertisement` present
+- [X] Traefik pod `Running`, Service has `EXTERNAL-IP`
+- [X] `curl http://test.local` → HTTP 200
 
 ---
 

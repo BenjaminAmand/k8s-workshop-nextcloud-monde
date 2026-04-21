@@ -48,17 +48,25 @@ where the pod is scheduled. The directory is a `hostPath` volume under the hood.
 local-path creates storage on a specific node. What happens if the Nextcloud pod
 is rescheduled to a different node (e.g., after a node failure or pod eviction)?
 
+Le pod échouera car il n'as pas acces au stockage sur un autre node.
+
 **Question 2 — Production suitability**  
 Is `local-path` appropriate for a production PostgreSQL primary? What storage solution
 would you use instead, and why?
+
+Non, il manque la replication et la haute disponibilité. Pour de la production, il est preferable d'utiliser un stockage réseau.
 
 **Question 3 — ReclaimPolicy consequences**  
 The policy is `Delete`. What does that mean for your data if you accidentally delete
 a PVC? How would you change this for a production workload?
 
+Les donneés sont définitivements supprimmés, pour la production, il faut utiliser la politique `Retain`
+
 **Question 4 — ReadWriteOnce vs ReadWriteMany**  
 `local-path` only supports `ReadWriteOnce`. What does that imply for running
 multiple replicas of a Deployment that mounts the same PVC?
+
+Ca signifie qu'un seul noeud peut monter le volume à la fois, empechant les replications ou plusieurs acces en meme temps.
 
 ---
 
