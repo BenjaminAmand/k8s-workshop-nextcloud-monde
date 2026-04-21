@@ -179,9 +179,9 @@ kubectl get ipaddresspool,l2advertisement -n metallb-system
 
 ### Checkpoint 2 — MetalLB
 
-- [ ] MetalLB controller and 3 speakers are `Running`
-- [ ] `IPAddressPool` exists with a CIDR inside your Docker subnet
-- [ ] `L2Advertisement` exists and references the pool
+- [X] MetalLB controller and 3 speakers are `Running`
+- [X] `IPAddressPool` exists with a CIDR inside your Docker subnet
+- [X] `L2Advertisement` exists and references the pool
 
 ---
 
