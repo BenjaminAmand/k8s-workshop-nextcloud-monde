@@ -189,9 +189,9 @@ kubectl exec -n nextcloud <redis-pod> -- redis-cli ping
 
 ### Checkpoint 1 — data layer
 
-- [ ] CNPG cluster in `Healthy` phase, 2 pods `Running`
-- [ ] Redis pod `Running`, `redis-cli ping` returns `PONG`
-- [ ] PVC for PostgreSQL is `Bound` (`kubectl get pvc -n nextcloud`)
+- [X] CNPG cluster in `Healthy` phase, 2 pods `Running`
+- [X] Redis pod `Running`, `redis-cli ping` returns `PONG`
+- [X] PVC for PostgreSQL is `Bound` (`kubectl get pvc -n nextcloud`)
 
 ---
 

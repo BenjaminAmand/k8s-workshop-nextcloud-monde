@@ -10,7 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: # TODO: same namespace as Nextcloud
+  namespace: nextcloud
   labels:
     app: redis
 spec:
@@ -25,50 +25,51 @@ spec:
     spec:
       containers:
         - name: redis
-          # TODO: choose an appropriate image and tag.
           # Consider: official image, a specific major version, a minimal variant.
           # Avoid :latest in any environment you care about.
-          image: # TODO (e.g., redis:7-alpine)
+          image: redis:7-alpine
 
-          # TODO: Redis should be started with memory limits configured.
           # Without maxmemory, Redis will consume all available memory and get OOM-killed.
           # You can set it via command args or a config file mounted from a ConfigMap.
           # Research: what does maxmemory-policy allkeys-lru do?
-          command: # TODO: pass redis-server with --maxmemory and --maxmemory-policy args
+          command: ["redis-server"]
+          args:
+            - "--maxmemory 128mb"
+            - "--maxmemory-policy allkeys-lru"
 
           ports:
-            - containerPort: # TODO: what port does Redis listen on?
+            - containerPort: 6379
               name: redis
 
           resources:
             requests:
-              cpu:    # TODO
-              memory: # TODO
+              cpu: 100m
+              memory: 128Mi
             limits:
-              cpu:    # TODO
-              # TODO: the memory limit must be >= the maxmemory you set above.
+              cpu: 200m
               # If the limit is lower than maxmemory, Redis will be killed by the kernel
               # before it can enforce its own eviction policy.
-              memory: # TODO
+              memory: 192Mi
 
           readinessProbe:
-            # TODO: Redis supports a built-in command for health checks.
             # Research: what does `redis-cli ping` return when Redis is healthy?
             # Use an exec probe.
             exec:
               command:
-                # TODO: write the probe command
+                - redis-cli
+                - ping
             initialDelaySeconds: 5
             periodSeconds: 10
 
           livenessProbe:
             exec:
               command:
-                # TODO: same command as readiness
+                - redis-cli
+                - ping
             initialDelaySeconds: 15
             periodSeconds: 20
 
-          # TODO: does Redis need persistent storage for the workshop?
+          # TODO: does Redis need persistent storage for the workshop? No, cache data is ephemeral
           # Think about what Redis stores here (session data, cache) and what
           # happens if the pod restarts. Make a decision and justify it.
           # volumeMounts:
@@ -86,7 +87,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
-  namespace: # TODO: same namespace as the Deployment above
+  namespace: nextcloud
   labels:
     app: redis
 spec:
@@ -95,7 +96,7 @@ spec:
     app: redis   # must match the Deployment's pod template labels
   ports:
     - name: redis
-      port: # TODO: what port does this Service expose?
-      targetPort: # TODO: what port on the container?
+      port: 6379
+      targetPort: 6379
       # Note: both should be the same Redis port — but you must fill them in explicitly.
       # A Service with wrong targetPort silently drops all traffic.
