@@ -1,33 +1,39 @@
 # Helm values override for kube-prometheus-stack.
+# Rename to values.yaml when complete.
 
 # ── Grafana ────────────────────────────────────────────────────────────────────
 grafana:
-  # Set a known admin password instead of a random string.
-  adminPassword: "adminSecurePassword123"
+  # Set a known admin password for the demo. 
+  adminPassword: "admin-workshop-pass"
 
   ingress:
+    # Expose Grafana via an Ingress resource
     enabled: true
-    ingressClassName: traefik
+
+    # Match the IngressClass used by the rest of your workshop (usually nginx)
+    ingressClassName: "traefik"
+
+    annotations:
+      cert-manager.io/cluster-issuer: "selfsigned-cluster-issuer"
+
     hosts:
       - grafana.local
 
-    # TLS - Hooking it into cert-manager from Day 3
-    annotations:
-      cert-manager.io/cluster-issuer: "selfsigned-cluster-issuer"
     tls:
-       - secretName: grafana-tls
-         hosts:
-           - grafana.local
+      - secretName: grafana-tls
+        hosts:
+          - grafana.local
 
   persistence:
+    # Ensure custom dashboards and settings survive pod restarts
     enabled: true
     size: 2Gi
 
 # ── Prometheus ─────────────────────────────────────────────────────────────────
 prometheus:
   prometheusSpec:
-    # Widen selectors to {} so Prometheus can automatically pick up 
-    # PodMonitors/ServiceMonitors deployed in the 'nextcloud' namespace.
+    # {} widens the selector to watch all namespaces, allowing Prometheus
+    # to discover CloudNativePG metrics in the 'nextcloud' namespace.
     podMonitorNamespaceSelector: {}
     serviceMonitorNamespaceSelector: {}
     ruleNamespaceSelector: {}
@@ -39,6 +45,7 @@ prometheus:
             - ReadWriteOnce
           resources:
             requests:
+              # 5Gi is plenty for a workshop environment with a 10-day retention period
               storage: 5Gi
 
 # ── Alertmanager ───────────────────────────────────────────────────────────────
