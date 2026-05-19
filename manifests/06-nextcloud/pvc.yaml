@@ -10,9 +10,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  # TODO: choose a name. You will reference this name in the Deployment's volumes section.
-  name: # TODO (e.g., nextcloud-data)
-  namespace: # TODO: which namespace?
+  name: nextcloud-data
+  namespace: nextcloud
   labels:
     app: nextcloud
 spec:
@@ -21,19 +20,19 @@ spec:
   # Can local-path storage be mounted by multiple nodes simultaneously?
   # Options: ReadWriteOnce, ReadWriteMany, ReadOnlyMany
   accessModes:
-    - # TODO
+    - ReadWriteOnce
 
   # TODO: how much storage does Nextcloud need for the workshop?
   # The application code alone is ~300 MB.
   # Add space for user file uploads during the demo.
   resources:
     requests:
-      storage: # TODO (e.g., 5Gi)
+      storage: 5Gi
 
-  # TODO: should you specify a storageClassName?
+  # TODO: should you specify a storageClassName? yes
   # Leaving it empty uses the cluster default (local-path in kind).
   # Being explicit is better practice — it avoids surprises when the default changes.
-  # storageClass: # TODO: uncomment and set, or leave commented for default
+  storageClassName: standard
 
 # IMPORTANT: local-path-provisioner only binds this PVC when a pod first mounts it.
 # Running `kubectl get pvc` right after apply will show status Pending — that is normal.

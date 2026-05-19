@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nextcloud
-  namespace: # TODO: which namespace?
+  namespace: nextcloud
   labels:
     app: nextcloud
   annotations:
@@ -22,21 +22,20 @@ metadata:
     # Once created, reference it here with:
     #   traefik.ingress.kubernetes.io/router.middlewares: "<namespace>-<middleware-name>@kubernetescrd"
     # Research: Traefik Middleware CRD spec.headers.hostsProxyHeaders and customRequestHeaders.
-    traefik.ingress.kubernetes.io/router.middlewares: # TODO: "<namespace>-<name>@kubernetescrd"
+    traefik.ingress.kubernetes.io/router.middlewares: "nextcloud-nextcloud-headers@kubernetescrd"
     traefik.ingress.kubernetes.io/router.entrypoints: "web,websecure"
 
     # ── TLS / cert-manager ────────────────────────────────────────────────────
-    # Leave this commented on Day 2. Uncomment and set on Day 3.
-    # cert-manager.io/cluster-issuer: # TODO (Day 3): name of your ClusterIssuer
+    cert-manager.io/cluster-issuer: "selfsigned-cluster-issuer"
 
 spec:
   # TODO: check which IngressClass name Traefik registered in your cluster.
   # Run: kubectl get ingressclass
   # The name here must match exactly.
-  ingressClassName: # TODO
+  ingressClassName: traefik
 
   rules:
-    - host: # TODO: what hostname will users access Nextcloud at?
+    - host: nextcloud.local
              # This must match NEXTCLOUD_TRUSTED_DOMAINS in your ConfigMap.
              # It must also be in your /etc/hosts (or Windows hosts file).
       http:
@@ -45,17 +44,15 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: # TODO: name of your Nextcloud Service
+                name: nextcloud
                 port:
-                  # TODO: which port does the Nextcloud Service expose?
                   # Hint: check service.yaml — it is NOT port 9000.
-                  number: # TODO
+                  number: 80
 
   # ── TLS — uncomment and complete on Day 3 ────────────────────────────────────
   # After installing cert-manager and creating a ClusterIssuer, add TLS here.
   # cert-manager will create the Secret automatically when it sees the annotation above.
-  # tls:
-  #   - hosts:
-  #       - # TODO: same hostname as the rule above
-  #     secretName: # TODO: name for the TLS Secret cert-manager will create
-                    #       (e.g., nextcloud-tls) — does not need to exist yet
+  tls:
+    - hosts:
+        - nextcloud.local
+      secretName: nextcloud-tls

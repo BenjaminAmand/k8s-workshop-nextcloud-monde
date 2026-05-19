@@ -2,14 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nextcloud
-  namespace: # TODO: which namespace?
+  namespace: nextcloud
   labels:
     app: nextcloud
 spec:
   # TODO: how many replicas?
   # Consider: your PVC uses ReadWriteOnce — only one node can mount it at a time.
   # What happens if you set replicas: 2 and both pods are scheduled to different nodes?
-  replicas: # TODO
+  replicas: 1
 
   selector:
     matchLabels:
@@ -30,12 +30,14 @@ spec:
         # Its only job: fix ownership on the data volume so PHP-FPM can write to it.
         - name: fix-permissions
           # TODO: choose a minimal image (busybox, alpine — something with chown).
-          image: # TODO
+          image: alpine
           command:
             # TODO: write the command that sets correct ownership on /var/www/html.
             # PHP-FPM runs as www-data. What is www-data's UID and GID?
             # Hint: UID 33 is the standard www-data UID in Debian-based images.
-            # Format: ["sh", "-c", "chown ..."]
+            - "sh"
+            - "-c"
+            - "chown -R 33:33 /var/www/html"
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
@@ -50,7 +52,7 @@ spec:
         - name: nextcloud
           # TODO: use the FPM variant — NOT nextcloud:latest (that image uses Apache).
           # Look at Docker Hub for available tags: hub.docker.com/_/nextcloud
-          image: # TODO (e.g., nextcloud:31-fpm-alpine)
+          image: nextcloud:fpm
 
           ports:
             - containerPort: 9000   # FastCGI — internal use only (not exposed via Service)
@@ -59,9 +61,11 @@ spec:
           envFrom:
             # Load all keys from the ConfigMap as environment variables.
             - configMapRef:
-                name: # TODO: name of your nextcloud-config ConfigMap
+                name: nextcloud-config
 
           env:
+            - name: NEXTCLOUD_TRUSTED_DOMAINS
+              value: "localhost 127.0.0.1 nextcloud.local"
             # Map PostgreSQL credentials from the CNPG-managed Secret.
             # CNPG creates a Secret named <cluster-name>-app automatically.
             # Its keys (username, password) do NOT match Nextcloud's expected env var names —
@@ -73,18 +77,23 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: # TODO: name of the CNPG-created Secret (<cluster-name>-app)
+                  name: postgres-app
                   key: username
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: host
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: dbname
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: # TODO: same Secret as above
+                  name: postgres-app
                   key: password
-            - name: NEXTCLOUD_ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: # TODO: name of your nextcloud-admin Secret
-                  key: NEXTCLOUD_ADMIN_PASSWORD
 
           volumeMounts:
             - name: nextcloud-data
@@ -92,38 +101,28 @@ spec:
 
           resources:
             requests:
-              cpu:    # TODO
-              memory: # TODO
+              cpu: 250m
+              memory: 512Mi
             limits:
-              cpu:    # TODO
-              # TODO: PHP-FPM worker processes are memory-hungry.
+              cpu: 1000m
               # Your ConfigMap sets PHP_MEMORY_LIMIT — the container limit must be higher.
-              # What happens if the container limit is lower than PHP's own memory limit?
-              memory: # TODO
+              # What happens if the container limit is lower than PHP's own memory limit? The pod is killed
+              memory: 1Gi
 
           readinessProbe:
-            # DELIBERATE ERROR: PHP-FPM speaks FastCGI, not HTTP.
-            # An httpGet probe on port 9000 will never succeed — FPM will reject it.
-            # Fix: either use an exec probe on this container, or move the HTTP probe
-            # to the nginx container (which does speak HTTP).
-            # Also: Nextcloud's first boot takes 60–120s (DB migrations + app install).
-            # A failureThreshold of 3 with a 10s period will kill the container in 30s.
-            # That is not enough. Fix both the probe type AND the timing.
-            httpGet:
-              path: /status.php
-              port: 9000          # WRONG: FPM does not serve HTTP on this port
-            initialDelaySeconds: 10   # WRONG: too short for first boot
+            # PHP-FPM speaks FastCGI. A TCP socket check ensures the process is accepting connections.
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
             periodSeconds: 10
-            failureThreshold: 3       # WRONG: too low for a slow-starting application
+            failureThreshold: 15
 
           livenessProbe:
-            # Same issue as readinessProbe above. Fix it.
-            httpGet:
-              path: /status.php
-              port: 9000          # WRONG
-            initialDelaySeconds: 30
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
             periodSeconds: 30
-            failureThreshold: 3   # WRONG
+            failureThreshold: 10
 
         # ─────────────────────────────────────────────────────────────────────
         # Container 2: nginx sidecar
@@ -138,12 +137,13 @@ spec:
           image: nginx:alpine
 
           ports:
-            - containerPort: 8080   # DELIBERATE ERROR: nginx should listen on port 80.
+            - containerPort: 80
               name: http             # The Service and Ingress expect port 80. Fix this.
 
           volumeMounts:
             - name: nextcloud-data
               mountPath: /var/www/html
+              readOnly: false
               # TODO: should this mount be readOnly?
               # nginx serves Nextcloud's static files — does it ever need to write?
               # Think carefully before setting readOnly: true.
@@ -153,39 +153,48 @@ spec:
 
           resources:
             requests:
-              cpu:    # TODO
-              memory: # TODO
+              cpu: 100m
+              memory: 128Mi
             limits:
-              cpu:    # TODO
-              memory: # TODO
+              cpu: 200m
+              memory: 256Mi
+
+          startupProbe:
+            httpGet:
+              path: /status.php
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 30 # 30 * 10s = 300s (5 minutes max startup window)
+            timeoutSeconds: 15
 
           readinessProbe:
             # TODO: nginx CAN answer HTTP — this is the right container for an httpGet probe.
             # Which path indicates Nextcloud is ready to serve requests?
             # Consider: /status.php, /, /login — which one is reliable and fast?
             httpGet:
-              path: # TODO
-              port: # TODO: fix the port to match the containerPort you corrected above
-            initialDelaySeconds: # TODO: generous — Nextcloud is slow on first boot
+              path: /status.php
+              port: 80
+            initialDelaySeconds: 45
             periodSeconds: 15
-            failureThreshold: # TODO: how many consecutive failures before giving up?
+            failureThreshold: 10
 
           livenessProbe:
             httpGet:
-              path: # TODO
-              port: # TODO
-            initialDelaySeconds: # TODO
+              path: /status.php
+              port: 80
+            initialDelaySeconds: 90
             periodSeconds: 30
-            failureThreshold: # TODO
+            failureThreshold: 3
 
       volumes:
         - name: nextcloud-data
           persistentVolumeClaim:
-            claimName: # TODO: name of your PVC (from pvc.yaml)
+            claimName: nextcloud-data
 
         - name: nginx-config
           configMap:
-            name: # TODO: name of your nginx-config ConfigMap
+            name: nginx-config
 
         # TODO: do you need any additional volumes?
         # Think about what each container needs access to.

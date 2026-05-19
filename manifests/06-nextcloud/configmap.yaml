@@ -1,0 +1,114 @@
+# This file defines TWO ConfigMaps:
+#   1. nextcloud-config — environment variables for the PHP-FPM container
+#   2. nginx-config     — nginx configuration for the sidecar container
+#
+# Apply with: kubectl apply -f configmap.yaml
+
+# ── ConfigMap 1: Nextcloud environment variables ──────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextcloud-config
+  namespace: nextcloud
+data:
+  # Domains Nextcloud accepts requests from.
+  NEXTCLOUD_TRUSTED_DOMAINS: "nextcloud.local localhost 127.0.0.1 192.168.61.214"
+
+  # Admin username for the Nextcloud web interface.
+  NEXTCLOUD_ADMIN_USER: "admin"
+
+  # Protocol used for URL generation and redirects.
+  OVERWRITEPROTOCOL: "http"
+
+  # Base URL for the occ command-line tool and link generation.
+  OVERWRITECLIURL: "http://nextcloud.local"
+
+  # Redis connection details. Short name works within the same namespace.
+  REDIS_HOST: redis
+  REDIS_HOST_PORT: "6379"
+
+  # PHP runtime limits.
+  PHP_MEMORY_LIMIT: "512M"
+  PHP_UPLOAD_LIMIT: "512M"
+
+  # Skip Nextcloud's upgrade check on every container startup.
+  NEXTCLOUD_UPDATE: "1"
+
+---
+# ── ConfigMap 2: nginx configuration ──────────────────────────────────────────
+# nginx acts as the HTTP frontend for Nextcloud's PHP-FPM backend.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nextcloud
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log  /var/log/nginx/error.log warn;
+    pid        /var/run/nginx.pid;
+
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      include       /etc/nginx/mime.types;
+      default_type  application/octet-stream;
+      sendfile       on;
+      keepalive_timeout 65;
+
+      server {
+        listen 80;
+        server_name _;
+
+        # Matches the mountPath of the shared volume inside the nginx container.
+        root /var/www/html;
+        index index.php index.html;
+
+        # Set a generous upload limit for Nextcloud file uploads.
+        client_max_body_size 512M;
+
+        # Serve static files; rewrite everything else to index.php (Nextcloud's router).
+        location / {
+          try_files $uri $uri/ /index.php$request_uri;
+        }
+
+        # Handle Nextcloud's .well-known URLs (CalDAV, CardDAV redirects).
+        location ^~ /.well-known {
+          return 301 /index.php$request_uri;
+        }
+
+        # PHP request handling.
+        location ~ \.php(?:$|/) {
+          fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+          if (!-f $document_root$fastcgi_script_name) { return 404; }
+
+          # CORRECTED: Communicates locally via loopback because FPM lives in the same pod.
+          fastcgi_pass 127.0.0.1:9000;
+
+          fastcgi_index index.php;
+
+          # Include standard parameters
+          include fastcgi_params;
+
+          # CORRECTED: Instructs PHP-FPM precisely which script file to parse on disk.
+          fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+          
+          fastcgi_param PATH_INFO       $fastcgi_path_info;
+          fastcgi_param HTTPS           $https if_not_empty;
+          fastcgi_read_timeout          300;
+          fastcgi_send_timeout          300;
+        }
+
+        # Block access to hidden files (.htaccess, .git, etc.).
+        location ~ /\. {
+          deny all;
+        }
+
+        # Block access to Nextcloud's data directory.
+        location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/) {
+          return 404;
+        }
+      }
+    }

@@ -1,0 +1,54 @@
+# Helm values override for kube-prometheus-stack.
+
+# ── Grafana ────────────────────────────────────────────────────────────────────
+grafana:
+  # Set a known admin password instead of a random string.
+  adminPassword: "adminSecurePassword123"
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - grafana.local
+
+    # TLS - Hooking it into cert-manager from Day 3
+    annotations:
+      cert-manager.io/cluster-issuer: "selfsigned-cluster-issuer"
+    tls:
+       - secretName: grafana-tls
+         hosts:
+           - grafana.local
+
+  persistence:
+    enabled: true
+    size: 2Gi
+
+# ── Prometheus ─────────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    # Widen selectors to {} so Prometheus can automatically pick up 
+    # PodMonitors/ServiceMonitors deployed in the 'nextcloud' namespace.
+    podMonitorNamespaceSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 5Gi
+
+# ── Alertmanager ───────────────────────────────────────────────────────────────
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
