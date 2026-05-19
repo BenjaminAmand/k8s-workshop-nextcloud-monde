@@ -173,6 +173,9 @@ spec:
             httpGet:
               path: /status.php
               port: 80
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: 15
             periodSeconds: 10
             failureThreshold: 30 # 30 * 10s = 300s (5 minutes max startup window)
@@ -185,6 +188,9 @@ spec:
             httpGet:
               path: /status.php
               port: 80
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: 45
             periodSeconds: 15
             failureThreshold: 10
@@ -193,6 +199,9 @@ spec:
             httpGet:
               path: /status.php
               port: 80
+              httpHeaders:
+                - name: Host
+                  value: localhost
             initialDelaySeconds: 90
             periodSeconds: 30
             failureThreshold: 3
