@@ -52,7 +52,7 @@ spec:
   # ── TLS — uncomment and complete on Day 3 ────────────────────────────────────
   # After installing cert-manager and creating a ClusterIssuer, add TLS here.
   # cert-manager will create the Secret automatically when it sees the annotation above.
-  # tls:
-    # - hosts:
-        # - nextcloud.local
-      # secretName: nextcloud-tls
+  tls:
+    - hosts:
+        - nextcloud.local
+      secretName: nextcloud-tls

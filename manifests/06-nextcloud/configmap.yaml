@@ -18,10 +18,10 @@ data:
   NEXTCLOUD_ADMIN_USER: "admin"
 
   # Protocol used for URL generation and redirects.
-  OVERWRITEPROTOCOL: "http"
+  OVERWRITEPROTOCOL: "https"
 
   # Base URL for the occ command-line tool and link generation.
-  OVERWRITECLIURL: "http://nextcloud.local"
+  OVERWRITECLIURL: "https://nextcloud.local"
 
   # Redis connection details. Short name works within the same namespace.
   REDIS_HOST: redis
